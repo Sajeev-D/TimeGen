@@ -9,7 +9,7 @@ openai.api_key = 'sk-proj-UGMA2Nv0TPrVSCpl0dngT3BlbkFJYgd9SSZ6dV2avNJLQt0C'
 response = openai.ChatCompletion.create(
   model="gpt-3.5-turbo",
   messages=[
-        {"role": "user", "content": "Sing me a song about the ocean."},
+        {"role": "user", "content": "Sing me a song about Sajeev, by Malaysian friend who likes Nasi Goreng."},
     ]
 )
 
