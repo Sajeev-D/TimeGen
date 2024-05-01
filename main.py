@@ -1,8 +1,20 @@
+import openai
 from docx import Document
-from docx.shared import Pt  # Import Pt
+from docx.shared import Pt
 
-# Example usage
-string_content = "Dispute Lens is a Billion Dollar Company."
+# Set your OpenAI API key
+openai.api_key = 'sk-proj-UGMA2Nv0TPrVSCpl0dngT3BlbkFJYgd9SSZ6dV2avNJLQt0C'
+
+# Make a GPT-3 API call
+response = openai.ChatCompletion.create(
+  model="gpt-3.5-turbo",
+  messages=[
+        {"role": "user", "content": "Sing me a song about the ocean."},
+    ]
+)
+
+# Get the content from the GPT-3 response
+string_content = response['choices'][0]['message']['content']
 
 def create_document():
     # Create a new document
@@ -19,4 +31,5 @@ def create_document():
     # Save the document
     doc.save('output.docx')
 
-
+# Create the document with the GPT-3 response
+create_document()
