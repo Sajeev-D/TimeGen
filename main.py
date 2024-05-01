@@ -10,24 +10,11 @@ def create_document(content):
     # Save the document
     doc.save('output.docx')
 
+    style = doc.styles['Normal']
+    font = style.font
+    font.name = 'Arial'
+    font.size = 18
+
 # Example usage
-string_content = "This is the content of the document."
+string_content = "Dispute Lens is a Billion Dollar Company."
 create_document(string_content)
-
-# from docx import Document
-# from docx.shared import Cm
-
-# # style.font.size = Pt(12)
-# # style.font.name = 'Arial'
-# # style.font.bold = True
-# # style.font.italic = True
-# # style.font.underline = True
-
-# print("Hello World\n")
-
-# text = "DisputeLens. The start of the future.\n"
-
-# print(text)
-
-# doc = Document()
-
