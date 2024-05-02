@@ -5,11 +5,15 @@ from docx.shared import Pt
 # Set your OpenAI API key
 openai.api_key = 'sk-proj-UGMA2Nv0TPrVSCpl0dngT3BlbkFJYgd9SSZ6dV2avNJLQt0C'
 
+
+string Prompt = """Look through this email chain, make me a timeline of what was agreed to and when. make it concise. for each email, include the date/time, and who sent it. For the content, only include what was either PROMISED or ACCEPTED."""
+string Emails = 
+
 # Make a GPT-3 API call
 response = openai.ChatCompletion.create(
   model="gpt-3.5-turbo",
   messages=[
-        {"role": "user", "content": "Write a song about my Malaysian friend Sajeev who likes Nasi Goreng"},
+        {"role": "user", "content": Prompt + Emails},
     ]
 )
 
@@ -29,7 +33,7 @@ def create_document():
     font.size = Pt(18)  # Use Pt for font size
 
     # Save the document
-    doc.save('output.docx')
+    doc.save('thread_summarized.docx')
 
 # Create the document with the GPT-3 response
 create_document()
