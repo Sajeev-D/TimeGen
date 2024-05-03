@@ -16,6 +16,7 @@ from msgraph import GraphServiceClient
 #from azure.identity import ClientSecret
 from azure.identity import ClientSecretCredential
 from pathlib import Path
+from datetime import date
 
 
 ########################### End of imports ###########################
@@ -25,10 +26,24 @@ from pathlib import Path
 #
 ########################### Start of helper functions ###########################
 
+def txt_to_docx(txt_file, docx_file):
+    # Create a new Document
+    doc = Document()
+    # Open the .txt file
+    with open(txt_file, 'r', encoding='utf-8') as file:
+        # Read the file
+        text = file.read()
+        # Add the text to the Document
+        doc.add_paragraph(text)
+        # Save the Document
+        doc.save(docx_file)
+
+    return
+
 # read the email thread from emails_raw.docx and return the content as a string
-def read_document():
+def read_document(docx_file_name):
     # Open the existing document
-    doc = Document('emails_raw.docx')
+    doc = Document(docx_file_name)
 
     # Read the content of the document
     content = []
@@ -72,7 +87,11 @@ def getGPT3Response(prompt):
 
     return string_content
 
-def getEmails():
+def getEmails(givenDateFrom, givenSubject, emailWith, yourEmail):
+    # Convert the given date to a datetime object
+    # if isinstance(givenDateFrom, str):
+    #     givenDateFrom = datetime.strptime(givenDateFrom, '%Y-%m-%d').date()
+
     # Create output folder
     output_dir = Path.cwd() / 'output'
     output_dir.mkdir(parents=True,exist_ok=True)
@@ -97,25 +116,76 @@ def getEmails():
     num = 1
 
     for message in messages:
-        if message.ReceivedTime.date() < datetime.date(2024, 5, 3):
-            print("Emails after the specified date have been saved to the output folder.")
-            break
+         # Check if the item is an email message
+        if hasattr(message, "MessageClass") and message.MessageClass.startswith("IPM.Note"):
+            if message.ReceivedTime.date() < givenDateFrom:
+                print("\nEmails after the specified date have been saved to the output folder.")
+                break
+            # Select all after a certain date
+            if givenSubject == "default" and emailWith == "default" and yourEmail == "default":  
+                print('Entered if statement 1\n')              
+                #Get the email subject
+                subject = message.Subject
+                #Get the email body
+                body = message.Body
+                #Get the received date and time
+                received_time = message.ReceivedTime
+                #Save the email body and received time to a text file
+                with open(output_dir / 'all_emails.txt', 'a', encoding='utf-8') as f:
+                    f.write(f"Email: {num}\n")
+                    f.write(f"Subject: {subject}\n\n")
+                    f.write(f"Received Time: {received_time}\n\n")
+                    f.write(body)
+                    f.write("\n----------------------\n")
+                num += 1
 
-        #Get the email subject
-        subject = message.Subject
-        #Get the email body
-        body = message.Body
-        #Get the received date and time
-        received_time = message.ReceivedTime
-        #Save the email body and received time to a text file
-        with open(output_dir / f'{num}.txt', 'w', encoding='utf-8') as f:
-            f.write(f"Received Time: {received_time}\n\n")
-            f.write(body)   
-        num += 1
+            # Select all emails with a specific subject
+            if givenSubject != "default" and emailWith == "default":
+                if message.Subject == givenSubject or message.Subject == "Re: " + givenSubject:
+                    print('Entered if statement 2\n')  
+                    #Get the email subject
+                    subject = message.Subject
+                    #Get the email body
+                    body = message.Body
+                    #Get the received date and time
+                    received_time = message.ReceivedTime
+                    #Save the email body and received time to a text file
+                    with open(output_dir / 'all_emails.txt', 'a', encoding='utf-8') as f:
+                        f.write(f"Email: {num}\n")
+                        f.write(f"Subject: {subject}\n\n")
+                        f.write(f"Received Time: {received_time}\n\n")
+                        f.write(body)
+                        f.write("\n----------------------\n")
+                    num += 1
+                    if message.Subject == "Re: " + givenSubject:
+                        break
 
+            if givenSubject == "default" and emailWith != "default" and yourEmail != "default":
+                print('Entered if statement 3\n')  
+                # print(message.SenderEmailAddress)
+                # print(emailWith)
+                recipient = message.Recipients[0]
+                resolved = recipient.Resolve()
+                print(resolved)
+                if any(recipient.Address == emailWith for recipient in message.Recipients):                    
+                    print('Entered the second level function\n\n')
+                    subject = message.Subject
+                    #Get the email body
+                    body = message.Body
+                    #Get the received date and time
+                    received_time = message.ReceivedTime
+                    #Save the email body and received time to a text file
+                    with open(output_dir / 'all_emails.txt', 'a', encoding='utf-8') as f:
+                        f.write(f"Email: {num}\n")
+                        f.write(f"Subject: {subject}\n\n")
+                        f.write(f"Received Time: {received_time}\n\n")
+                        f.write(body)
+                        f.write("\n----------------------\n")
+                    num += 1
     return
 
-        
+def is_directory_empty(path):
+    return len(os.listdir(path)) == 0
 ########################### End of helper functions ###########################
 #
 #
@@ -124,17 +194,38 @@ def getEmails():
 ########################### Start of main function ###########################
 
 def main():    
-    ## Creates a timeline of the email thread
-    # firstPrompt = "Look through this email chain, make me a timeline of what was agreed to and when. make it concise. for each email, include the date/time, and who sent it. For the content, only include what was either PROMISED or ACCEPTED."
-    # Emails = read_document()
-    # fullPrompt = firstPrompt + "\n" + Emails
-    # # string_content = getGPT3Response(fullPrompt)
-    # string_content = "This is a test string."
-    # create_document(string_content)
+    if os.path.exists('raw_emails.docx'):
+        # Delete the file
+        os.remove('raw_emails.docx')
 
     print('Getting emails...\n')
-    getEmails()
+
+    # Set the date and subject of the emails to be retrieved
+    dateFrom = date(2024, 5, 3)
+    subject = 'Electrical Wiring for House'
+    emailW = "default"
+    yourE = "default"
+
+    getEmails(dateFrom, subject, emailW, yourE)
     print('\nEmails have been saved to the output folder.')
+    
+    firstPrompt = "Look through this email chain, make me a timeline of what was agreed to and when. make it concise. for each email, include the date/time, and who sent it. For the content, only include what was either PROMISED or ACCEPTED."
+    
+    if is_directory_empty('output'):
+        print(f"The directory {'output'} is empty.")
+
+    else:
+        print(f"The directory {'output'} is not empty.")
+        txt_to_docx('output/all_emails.txt', 'raw_emails.docx')
+
+        Emails = read_document('raw_emails.docx')
+        os.remove('raw_emails.docx')
+
+        fullPrompt = firstPrompt + "\n" + Emails
+        string_content = getGPT3Response(fullPrompt)
+
+        create_document(string_content)
+
     return
 
 ########################### End of main function ###########################
@@ -147,109 +238,3 @@ print('Starting DisputeLens...\n')
 main()
 print('\nDisputeLens has finished running!')
 ########################### End of execution ###########################
-#
-#
-#
-#
-########################### Code Dump ###########################
-
-# #initialize the variables
-# client_id = '8a23d535-8a92-469b-a11b-d6fa336eea9a'
-# client_secret = '8e366d84-4076-460e-8f92-a87b680f93da'
-# tenant_id = 'f8cdef31-a31e-4b4a-93e4-5f571e91255a'
-# authority = f'https://login.microsoftonline.com/f8cdef31-a31e-4b4a-93e4-5f571e91255a'
-# scope = ['https://graph.microsoft.com/User.Read','https://graph.microsoft.com/Mail.Read' ] #done
-
-# # Initialize the OAuth client
-# client = WebApplicationClient(client_id)
-# redirect_uri = 'http://localhost:8000/callback'
-
-# # Step 1: Redirect the user to the provider's authorization page
-# authorization_url = client.prepare_request_uri(
-#     "https://provider.com/oauth/authorize",
-#     redirect_uri=redirect_uri,
-#     scope=["mail.read"],
-# )
-# # Redirect the user to authorization_url
-
-# # Step 2: User is redirected back to your application, capture the code
-# code = request.args.get("code")
-
-# # Step 3: Exchange the code for a token
-# token_url, headers, body = client.prepare_token_request(
-#     "https://provider.com/oauth/token",
-#     authorization_response=request.url,
-#     redirect_url=request.base_url,
-#     code=code,
-# )
-# token_response = requests.post(
-#     token_url,
-#     headers=headers,
-#     data=body,
-#     auth=(client_id, client_secret),
-# )
-
-# # Parse the tokens!
-# client.parse_request_body_response(json.dumps(token_response.json()))
-
-# app = msal.ConfidentialClientApplication(client_id, authority=authority, client_credential=client_secret)
-
-# result = app.acquire_token_for_client(scope)
-
-# access_token = None
-
-# response = None
-
-# if 'access_token' in result:
-#     access_token = result['access_token']
-#     graph_endpoint = 'https://graph.microsoft.com/v1.0/me/messages'
-#     headers = {'Authorization': 'Bearer ' + access_token}
-#     response = requests.get(graph_endpoint, headers=headers)
-#     print(response.json())
-# else:
-#     print(f'Could not acquire token: {result}')
-
-# async def graph_API_call():
-#     credential = ClientSecretCredential(
-#         tenant_id="f8cdef31-a31e-4b4a-93e4-5f571e91255a",
-#         client_id="8a23d535-8a92-469b-a11b-d6fa336eea9a",
-#         client_secret="8e366d84-4076-460e-8f92-a87b680f93da",
-#     )
-
-#     client = GraphClient(credential=credential, scopes=['https://graph.microsoft.com/.default'])
-
-#     message_id = 'message-id'  # replace with your message id
-#     endpoint = f'https://graph.microsoft.com/v1.0/me/messages/{message_id}'
-
-#     headers = {
-#         "Prefer": "outlook.body-content-type=\"text\""
-#     }
-
-#     response = await client.get(endpoint, headers=headers)
-#     email_content = response.json()
-
-#     return email_content
-
-# async def list_messages():
-#     credential = ClientSecretCredential(
-#         tenant_id="f8cdef31-a31e-4b4a-93e4-5f571e91255a",
-#         client_id="8a23d535-8a92-469b-a11b-d6fa336eea9a",
-#         client_secret="8e366d84-4076-460e-8f92-a87b680f93da",
-#     )
-
-#     loop = asyncio.get_event_loop()
-#     token = await loop.run_in_executor(None, lambda: credential.get_token('https://graph.microsoft.com/.default'))
-
-#     url = 'https://graph.microsoft.com/v1.0/me/mailFolders/Inbox/messages'
-
-#     headers = {
-#         'Authorization': 'Bearer ' + token.token
-#     }
-
-#     response = requests.get(url, headers=headers)
-#     messages = response.json()
-
-#     for message in messages['value']:
-#         print(message['id'])
-
-########################### End of Code Dump ###########################
