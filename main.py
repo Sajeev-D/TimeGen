@@ -8,6 +8,7 @@ import win32com.client # pip install pywin32
 import datetime
 import os
 import glob
+import re
 
 from docx import Document
 from docx.shared import Pt
@@ -121,6 +122,23 @@ def getEmails(givenDateFrom, givenSubject, emailWith, yourEmail):
             if message.ReceivedTime.date() < givenDateFrom:
                 print("\nEmails after the specified date have been saved to the output folder.")
                 break
+
+            # Get recipients email address
+            to_email_address = "default"
+            body2 = message.Body
+
+            # Get the line that starts with 'To:'
+            to_line = next((line for line in body2.split('\n') if line.startswith('To:')), None)
+
+            if to_line is not None:
+                # Use a regular expression to find the email address
+                match = re.search(r'<(.+)>', to_line)
+                if match:
+                    to_email_address = match.group(1)
+                    print(f"Receivers Email Address is: {to_email_address}")
+            else:
+                print("No 'To:' line found in the email body.")
+            
             # Select all after a certain date
             if givenSubject == "default" and emailWith == "default" and yourEmail == "default":  
                 print('Entered if statement 1\n')              
@@ -128,6 +146,7 @@ def getEmails(givenDateFrom, givenSubject, emailWith, yourEmail):
                 subject = message.Subject
                 #Get the email body
                 body = message.Body
+                
                 #Get the received date and time
                 received_time = message.ReceivedTime
                 #Save the email body and received time to a text file
@@ -147,6 +166,8 @@ def getEmails(givenDateFrom, givenSubject, emailWith, yourEmail):
                     subject = message.Subject
                     #Get the email body
                     body = message.Body
+
+                    print(body)
                     #Get the received date and time
                     received_time = message.ReceivedTime
                     #Save the email body and received time to a text file
@@ -162,12 +183,8 @@ def getEmails(givenDateFrom, givenSubject, emailWith, yourEmail):
 
             if givenSubject == "default" and emailWith != "default" and yourEmail != "default":
                 print('Entered if statement 3\n')  
-                # print(message.SenderEmailAddress)
-                # print(emailWith)
-                recipient = message.Recipients[0]
-                resolved = recipient.Resolve()
-                print(resolved)
-                if any(recipient.Address == emailWith for recipient in message.Recipients):                    
+         
+                if emailWith == to_email_address:                    
                     print('Entered the second level function\n\n')
                     subject = message.Subject
                     #Get the email body
@@ -202,9 +219,9 @@ def main():
 
     # Set the date and subject of the emails to be retrieved
     dateFrom = date(2024, 5, 3)
-    subject = 'Electrical Wiring for House'
-    emailW = "default"
-    yourE = "default"
+    subject = 'default'
+    emailW = "daniel.parsons@mail.utoronto.ca"
+    yourE = "sajeev.debnath@mail.utoronto.ca"
 
     getEmails(dateFrom, subject, emailW, yourE)
     print('\nEmails have been saved to the output folder.')
