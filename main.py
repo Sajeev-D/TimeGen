@@ -279,7 +279,7 @@ def formTimeline(messages, dateString):
                 body = message.Body
                 received_time = message.ReceivedTime
                 received_time = message.ReceivedTime
-                prompt1 = "Look through this email, make me a timeline of what was agreed to and when. make it concise. for each email, include the date/time, and who sent it. For the content, only include what was either PROMISED or ACCEPTED."
+                prompt1 = "Look through this email, make me a timeline of what was PROMISED or ACCEPTED. For each email, include the date/time, and who sent it. If there is a dispute, bold the relevant text and make sure it is concise."
                 messagePrompt = subject + "\n" + body + "\n \n" + prompt1
 
                 docString = getGPT3Response(messagePrompt)
