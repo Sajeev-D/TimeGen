@@ -249,12 +249,12 @@ def getEmails(givenSubject, emailWith):
 
     return messages
 
-def formTimeline(messages, dateString):
+def formTimeline(messages, dateString, givenSubject):
     num_messages = len(messages)
     print(f"Number of messages: {num_messages}")
 
     for message in messages:
-        print(num_messages)
+        # print(num_messages)
         num_messages -= 1
         # Check if the item is an email message
         if hasattr(message, "MessageClass") and message.MessageClass.startswith("IPM.Note"):
@@ -294,6 +294,24 @@ def formTimeline(messages, dateString):
                     break
                 else:
                     print('Date not passed\n')
+            elif subjectGlobal == True and emailGlobal == False and dateGlobal == False:
+                print('Entered if statement 2\n')
+                if message.Subject == givenSubject or message.Subject == "Re: " + givenSubject:
+                    subject = message.Subject
+                    body = message.Body
+                    received_time = message.ReceivedTime
+                    prompt1 = "Look through this email, make me a timeline of what was PROMISED or ACCEPTED. For each email, include the date/time, and who sent it. If there is a dispute, bold the relevant text and make sure it is concise."
+                    messagePrompt = subject + "\n" + body + "\n \n" + prompt1
+
+                    docString = getGPT3Response(messagePrompt)
+                    heading = "Subject: " + subject + "\n" + "Received Time: " + str(received_time) + "\n"
+                    write_to_existing_document(heading, 'timeline.docx')
+                    write_to_existing_document(docString, 'timeline.docx')
+                    write_to_existing_document("\n-------------------------New GPT call------------------------\n", 'timeline.docx')
+                    if message.Subject == "Re: " + givenSubject:
+                        break
+                else:
+                    print('Subject not found\n')
     return
 
 # Check if co pilot can do it
@@ -352,11 +370,15 @@ class DialogWindow(QtWidgets.QDialog):
         dateFromG = self.ui.dateEdit.date()
         date_string = dateFromG.toString(QtCore.Qt.DateFormat.ISODate)
         print("Date from dateEdit:", date_string)
+        
+        print("\nSubject global is ", subjectGlobal)
+        print("\nEmail global is ", emailGlobal)
+        print("\nDate global is ", dateGlobal)
 
         # toString(QtCore.Qt.DateFormat.ISODate)
         #print("Date from dateEdit:", date)
 
-        main(date_string)
+        main(date_string, subjectG)
 
 ########################### End of helper functions ###########################
 #
@@ -365,7 +387,7 @@ class DialogWindow(QtWidgets.QDialog):
 #
 ########################### Start of main function ###########################
 
-def main(date_in_String):    
+def main(date_in_String, subjectString):    
     if os.path.exists('raw_emails.docx'):
         # Delete the file
         os.remove('raw_emails.docx')
@@ -377,7 +399,7 @@ def main(date_in_String):
         os.remove('timeline.docx')
         create_document("" ,"timeline.docx")
 
-    formTimeline(getEmails(subjectG, emailWG), date_in_String)
+    formTimeline(getEmails(subjectG, emailWG), date_in_String, subjectString)
     print('\nTimeline has been saved to timeline.docx\n')
 
     return
