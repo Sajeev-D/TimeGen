@@ -221,7 +221,7 @@ def getGPT3Response(prompt):
 
     return string_content
 
-def getEmails(givenSubject, emailWith):
+def getEmails():
     # Convert the given date to a datetime object
     # if isinstance(givenDateFrom, str):
     #     givenDateFrom = datetime.strptime(givenDateFrom, '%Y-%m-%d').date()
@@ -249,29 +249,15 @@ def getEmails(givenSubject, emailWith):
 
     return messages
 
-def formTimeline(messages, dateString, givenSubject):
+def formTimeline(messages, dateString, givenSubject, emailWith):
     num_messages = len(messages)
     print(f"Number of messages: {num_messages}")
 
     for message in messages:
-        # print(num_messages)
+        print(num_messages)
         num_messages -= 1
         # Check if the item is an email message
         if hasattr(message, "MessageClass") and message.MessageClass.startswith("IPM.Note"):
-            
-            # Get recipients email address
-            to_email_address = "default"
-            body2 = message.Body
-            # Get the line that starts with 'To:'
-            to_line = next((line for line in body2.split('\n') if line.startswith('To:')), None)
-
-            if to_line is not None:
-                # Use a regular expression to find the email address
-                match = re.search(r'<(.+)>', to_line)
-                if match:
-                    to_email_address = match.group(1)
-                    #print(f"Receivers Email Address is: {to_email_address}")
-            
             # Create timeline from after a certain date
             if subjectGlobal == False and emailGlobal == False and dateGlobal == True:
                 print('Entered if statement 1\n')
@@ -279,7 +265,7 @@ def formTimeline(messages, dateString, givenSubject):
                 body = message.Body
                 received_time = message.ReceivedTime
                 received_time = message.ReceivedTime
-                prompt1 = "Look through this email, make me a timeline of what was PROMISED or ACCEPTED. For each email, include the date/time, and who sent it. If there is a dispute, bold the relevant text and make sure it is concise."
+                prompt1 = "Look through this email, make a timeline of all agreements in terms of PROMISED and ACCEPTED. For each email, include the date/time, and who sent it."
                 messagePrompt = subject + "\n" + body + "\n \n" + prompt1
 
                 docString = getGPT3Response(messagePrompt)
@@ -296,7 +282,39 @@ def formTimeline(messages, dateString, givenSubject):
                     print('Date not passed\n')
             elif subjectGlobal == True and emailGlobal == False and dateGlobal == False:
                 print('Entered if statement 2\n')
-                if message.Subject == givenSubject or message.Subject == "Re: " + givenSubject:
+
+                testSubject = message.Subject
+
+                if testSubject == givenSubject or testSubject == "Re: " + givenSubject:
+                    subject = message.Subject
+                    print("The subject is",subject)
+
+                    body = message.Body
+                    received_time = message.ReceivedTime
+                    prompt1 = "Look through this email, make me a timeline of what was PROMISED or ACCEPTED. For each email, include the date/time, and who sent it. If there is a dispute, bold the relevant text and make sure it is concise."
+                    messagePrompt = subject + "\n" + body + "\n \n" + prompt1
+
+                    docString = getGPT3Response(messagePrompt)
+                    heading = "Subject: " + subject + "\n" + "Received Time: " + str(received_time) + "\n"
+                    write_to_existing_document(heading, 'timeline.docx')
+                    write_to_existing_document(docString, 'timeline.docx')
+                    write_to_existing_document("\n-------------------------New GPT call------------------------\n", 'timeline.docx')
+                    
+                    if message.Subject == "Re: " + givenSubject:
+                        break
+                else:
+                    print('Subject not found\n')
+
+            # Fixing this part        
+            elif subjectGlobal == False and emailGlobal == True and dateGlobal == False:
+                print('\nEntered if statement 3\n')
+                to_email_address = message.SenderEmailAddress
+
+                print('\nEmail with is', emailWith)
+                print('To email address is', to_email_address)
+                
+                if emailWith == to_email_address:
+                    print('Entered the second level function\n\n')
                     subject = message.Subject
                     body = message.Body
                     received_time = message.ReceivedTime
@@ -308,10 +326,9 @@ def formTimeline(messages, dateString, givenSubject):
                     write_to_existing_document(heading, 'timeline.docx')
                     write_to_existing_document(docString, 'timeline.docx')
                     write_to_existing_document("\n-------------------------New GPT call------------------------\n", 'timeline.docx')
-                    if message.Subject == "Re: " + givenSubject:
-                        break
                 else:
-                    print('Subject not found\n')
+                    print('Email not found\n')
+                    break
     return
 
 # Check if co pilot can do it
@@ -329,25 +346,31 @@ class DialogWindow(QtWidgets.QDialog):
         # Connect the clicked signal of checkboxes to the on_checkbox_clicked method
         self.ui.checkBox.clicked.connect(self.on_checkbox_clicked)
         self.ui.checkBox_2.clicked.connect(self.on_checkbox_clicked)
+        self.ui.checkBox_3.clicked.connect(self.on_checkbox_clicked)
 
         # Connect the clicked signal of pushButton to the on_pushButton_clicked method
         self.ui.pushButton.clicked.connect(self.on_pushButton_clicked2) #UNCOMMENT THIS LINE TO ENABLE THE BUTTON
 
     def on_checkbox_clicked(self):
-        global emailGlobal, dateGlobal
+        global emailGlobal, dateGlobal, subjectGlobal
         if self.ui.checkBox.isChecked():
             dateGlobal = True
-        elif self.ui.checkBox_2.isChecked():
-            emailGlobal = True
-        elif self.ui.checkBox.isChecked() == False:
-            dateGlobal = False
-        elif self.ui.checkBox_2.isChecked() == False:
-            emailGlobal = False
+            print("Date global is ", dateGlobal)
         elif self.ui.checkBox_3.isChecked():
             subjectGlobal = True
+            print("Subject global is ", subjectGlobal)
+        elif self.ui.checkBox_2.isChecked():
+            emailGlobal = True
+            print("Email global is ", emailGlobal)
+        elif self.ui.checkBox.isChecked() == False:
+            dateGlobal = False
+            print("Date global is ", dateGlobal)
+        elif self.ui.checkBox_2.isChecked() == False:
+            emailGlobal = False
+            print("Email global is ", emailGlobal)
         elif self.ui.checkBox_3.isChecked() == False:
             subjectGlobal = False
-
+            print("Subject global is ", subjectGlobal)
 
     def on_pushButton_clicked2(self):
         # Retrieve text from QLineEdit
@@ -355,6 +378,7 @@ class DialogWindow(QtWidgets.QDialog):
         print("Text from lineEdit:", text)
         if(text != ""):
             emailWG = text
+            emailWG = emailWG.rstrip() # Remove any trailing whitespace
         else:
             emailWG = "default"
 
@@ -363,6 +387,7 @@ class DialogWindow(QtWidgets.QDialog):
         print("Text from lineEdit_2:", text2)
         if(text2 != ""):
             subjectG = text2
+            subjectG = subjectG.rstrip() # Remove any trailing whitespace
         else:
             subjectG = "default"
 
@@ -370,7 +395,7 @@ class DialogWindow(QtWidgets.QDialog):
         dateFromG = self.ui.dateEdit.date()
         date_string = dateFromG.toString(QtCore.Qt.DateFormat.ISODate)
         print("Date from dateEdit:", date_string)
-        
+
         print("\nSubject global is ", subjectGlobal)
         print("\nEmail global is ", emailGlobal)
         print("\nDate global is ", dateGlobal)
@@ -378,7 +403,7 @@ class DialogWindow(QtWidgets.QDialog):
         # toString(QtCore.Qt.DateFormat.ISODate)
         #print("Date from dateEdit:", date)
 
-        main(date_string, subjectG)
+        main(date_string, subjectG, emailWG)
 
 ########################### End of helper functions ###########################
 #
@@ -387,7 +412,7 @@ class DialogWindow(QtWidgets.QDialog):
 #
 ########################### Start of main function ###########################
 
-def main(date_in_String, subjectString):    
+def main(date_in_String, subjectString, emailString):    
     if os.path.exists('raw_emails.docx'):
         # Delete the file
         os.remove('raw_emails.docx')
@@ -399,9 +424,10 @@ def main(date_in_String, subjectString):
         os.remove('timeline.docx')
         create_document("" ,"timeline.docx")
 
-    formTimeline(getEmails(subjectG, emailWG), date_in_String, subjectString)
-    print('\nTimeline has been saved to timeline.docx\n')
+    print("emailWG in main is ", emailString)
 
+    formTimeline(getEmails(), date_in_String, subjectString, emailString)
+    print('\nTimeline has been saved to timeline.docx\n')
     return
 
 ########################### End of main function ###########################
