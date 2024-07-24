@@ -22,7 +22,7 @@ def summarize_text(text):
 
 def main():
     # Path to your .docx file
-    docx_file = 'output.docx'
+    docx_file = 'timeline.docx'
     # Path to save the summary text
     summary_file = 'summary.txt'
     
